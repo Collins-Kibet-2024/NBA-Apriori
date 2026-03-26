@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HoopIQ — Play Pattern Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --bg4: #1e1e28;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0efe8;
+    --muted: #7a7986;
+    --orange: #ff6b2b;
+    --orange-dim: rgba(255,107,43,0.12);
+    --orange-glow: rgba(255,107,43,0.25);
+    --green: #2ecc8a;
+    --green-dim: rgba(46,204,138,0.1);
+    --blue: #4a9eff;
+    --blue-dim: rgba(74,158,255,0.1);
+    --red: #ff4d6a;
+    --red-dim: rgba(255,77,106,0.1);
+    --yellow: #f5c542;
+    --yellow-dim: rgba(245,197,66,0.1);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo-area {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .logo span { color: var(--orange); }
+  .logo-sub {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .nav { padding: 12px 0; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active { color: var(--orange); border-left-color: var(--orange); background: var(--orange-dim); }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .topbar-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  .badge-orange { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(255,107,43,0.2); }
+  .badge-green  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(46,204,138,0.2); }
+  .badge-blue   { background: var(--blue-dim);   color: var(--blue);   border: 1px solid rgba(74,158,255,0.2); }
+  .badge-red    { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(255,77,106,0.2); }
+
+  .content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── STAT GRID ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent, var(--orange));
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; color: var(--text); line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+  }
+  .card-body { padding: 0; }
+
+  /* ── RULES TABLE ── */
+  .rules-table { width: 100%; border-collapse: collapse; }
+  .rules-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    background: var(--bg4);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .rules-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .rules-table tr:last-child td { border-bottom: none; }
+  .rules-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .seq-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .seq-tag {
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .seq-arrow { color: var(--muted); font-size: 10px; }
+  .seq-tag.score { background: var(--green-dim); border-color: rgba(46,204,138,0.25); color: var(--green); }
+
+  .metric-bar-wrap { display: flex; align-items: center; gap: 8px; min-width: 100px; }
+  .metric-bar-bg { flex: 1; height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .metric-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); min-width: 36px; text-align: right; }
+
+  /* ── CHART AREA ── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ── PLAY SUGGESTER ── */
+  .suggester-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+
+  .filter-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    height: fit-content;
+    position: sticky;
+    top: 0;
+  }
+  .filter-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 14px; }
+  .filter-group { margin-bottom: 16px; }
+  .filter-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .filter-select, .filter-range {
+    width: 100%;
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+  }
+  .filter-select:focus { border-color: var(--orange); }
+
+  .range-wrap { position: relative; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--bg4);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--orange);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .range-labels { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: var(--muted); }
+
+  .run-btn {
+    width: 100%;
+    background: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 6px;
+  }
+  .run-btn:hover { background: #ff8550; transform: translateY(-1px); }
+  .run-btn:active { transform: translateY(0); }
+
+  .suggestions-area { min-height: 300px; }
+  .suggestion-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .suggestion-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent-color, var(--orange));
+    border-radius: 0;
+  }
+  .suggestion-card:hover { border-color: var(--border2); background: var(--bg4); transform: translateX(2px); }
+
+  .sug-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .sug-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+  .sug-seq { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sug-step {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sug-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    flex-shrink: 0;
+  }
+  .sug-step-label { font-size: 12px; color: var(--text); }
+  .sug-arrow-icon { color: var(--muted); font-size: 10px; }
+  .sug-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+  .sug-metric { font-size: 11px; color: var(--muted); }
+  .sug-metric strong { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 400; }
+  .sug-metric .green { color: var(--green); }
+  .sug-metric .orange { color: var(--orange); }
+  .sug-metric .blue { color: var(--blue); }
+
+  .sug-explain {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    display: none;
+  }
+  .suggestion-card.open .sug-explain { display: block; }
+
+  /* ── BENCHMARK PANEL ── */
+  .bench-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .bench-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    font-size: 13px;
+  }
+  .bench-row:last-child { border-bottom: none; }
+  .bench-thresh {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--orange);
+    min-width: 40px;
+  }
+  .bench-bar-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .bench-mini-row { display: flex; align-items: center; gap: 6px; }
+  .bench-mini-label { font-size: 10px; color: var(--muted); min-width: 42px; }
+  .bench-mini-bar { flex: 1; height: 6px; border-radius: 3px; overflow: hidden; background: var(--bg4); }
+  .bench-mini-fill { height: 100%; border-radius: 3px; }
+  .bench-mini-val { font-family: 'DM Mono', monospace; font-size: 10px; min-width: 52px; text-align: right; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    text-align: center;
+    gap: 10px;
+  }
+  .empty-icon { font-size: 40px; opacity: 0.3; }
+  .empty-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--muted); }
+  .empty-sub { font-size: 12px; max-width: 280px; line-height: 1.6; }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+    background: var(--bg3);
+  }
+  .upload-zone:hover { border-color: var(--orange); background: var(--orange-dim); }
+  .upload-zone.drag { border-color: var(--orange); background: var(--orange-dim); }
+  .upload-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; margin-bottom: 6px; }
+  .upload-sub { font-size: 12px; color: var(--muted); }
+
+  /* ── COURT VIZ ── */
+  .court-wrap { position: relative; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .fade-up { animation: fadeUp 0.3s ease forwards; }
+
+  /* ── TOOLTIP ── */
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 130%; left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 100;
+    color: var(--text);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo">HOOP<span>IQ</span></div>
+      <div class="logo-sub">Play Analytics Engine</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="navTo('overview', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/>
+          <rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/>
+        </svg>
+        Overview
+      </div>
+      <div class="nav-item" onclick="navTo('patterns', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 4h12M2 8h8M2 12h10"/>
+        </svg>
+        Pattern Rules
+      </div>
+      <div class="nav-item" onclick="navTo('suggester', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+        </svg>
+        Play Suggester
+      </div>
+      <div class="nav-item" onclick="navTo('benchmark', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 12l3-4 3 2 3-5 3 7"/>
+        </svg>
+        Benchmark
+      </div>
+      <div class="nav-item" onclick="navTo('load', this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 2v8M5 8l3 3 3-3"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/>
+        </svg>
+        Load Data
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div><span class="status-dot"></span>Engine ready</div>
+      <div style="margin-top:4px; font-size:10px;">v1.0 — Apriori</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title" id="page-title">OVERVIEW</div>
+      <div class="topbar-right">
+        <span class="badge badge-orange" id="team-badge">BOS — 2023-24</span>
+        <span class="badge badge-green" id="games-badge">0 Games</span>
+        <span class="badge badge-blue" id="rules-badge">0 Rules</span>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ══ OVERVIEW PANEL ══ -->
+      <div class="panel active" id="panel-overview">
+        <div class="stat-grid">
+          <div class="stat-card" style="--accent: var(--orange)">
+            <div class="stat-label">Games Loaded</div>
+            <div class="stat-value" id="stat-games">0</div>
+            <div class="stat-sub">regular season</div>
+          </div>
+          <div class="stat-card" style="--accent: var(--blue)">
+            <div class="stat-label">Total Sequences</div>
+            <div class="stat-value" id="stat-seqs">0</div>
+            <div class="stat-sub">possessions</div>
+          </div>
+          <div class="stat-card" style="--accent: var(--green)">
+            <div class="stat-label">Scoring Rate</div>
+            <div class="stat-value" id="stat-score-rate">0%</div>
+            <div class="stat-sub">sequences ending in score</div>
+          </div>
+          <div class="stat-card" style="--accent: var(--yellow)">
+            <div class="stat-label">Rules Mined</div>
+            <div class="stat-value" id="stat-rules">0</div>
+            <div class="stat-sub">association rules</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">SCORING EVENT BREAKDOWN</span>
+              <span class="badge badge-blue" id="scoring-count-badge">—</span>
+            </div>
+            <div class="card-body" style="padding:16px;">
+              <div style="position:relative;height:240px;"><canvas id="scoreChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">TOP ACTION FREQUENCY</span>
+            </div>
+            <div class="card-body" style="padding:16px;">
+              <div style="position:relative;height:240px;"><canvas id="actionChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">TOP 10 RAW SEQUENCES</span>
+            <span class="badge badge-orange">by frequency</span>
+          </div>
+          <div class="card-body">
+            <table class="rules-table" id="top-seq-table">
+              <thead><tr>
+                <th>#</th><th>Sequence</th><th>Count</th><th>Support</th><th>Scores?</th>
+              </tr></thead>
+              <tbody id="top-seq-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PATTERNS PANEL ══ -->
+      <div class="panel" id="panel-patterns">
+        <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;flex-wrap:wrap;">
+          <select class="filter-select" style="width:160px;" id="sort-rules" onchange="renderRules()">
+            <option value="lift">Sort: Lift ↓</option>
+            <option value="confidence">Sort: Confidence ↓</option>
+            <option value="support">Sort: Support ↓</option>
+          </select>
+          <select class="filter-select" style="width:180px;" id="filter-consequent" onchange="renderRules()">
+            <option value="">All scoring types</option>
+          </select>
+          <input class="filter-select" style="width:200px;" id="filter-search" placeholder="Search antecedents..." oninput="renderRules()">
+          <div style="margin-left:auto;font-size:12px;color:var(--muted);" id="rules-count-label">0 rules</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">SCORING ASSOCIATION RULES</span>
+            <span class="badge badge-orange" data-tip="Lift > 1 means the antecedent increases scoring probability">Lift-ranked</span>
+          </div>
+          <div class="card-body">
+            <table class="rules-table" id="rules-table">
+              <thead><tr>
+                <th>#</th>
+                <th>Antecedent(s)</th>
+                <th>→ Scores With</th>
+                <th data-tip="Support: how often this pattern appears">Support</th>
+                <th data-tip="Confidence: P(score | pattern)">Confidence</th>
+                <th data-tip="Lift: how much more likely to score vs random">Lift</th>
+              </tr></thead>
+              <tbody id="rules-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SUGGESTER PANEL ══ -->
+      <div class="panel" id="panel-suggester">
+        <div class="suggester-grid">
+          <div class="filter-panel">
+            <div class="filter-title">Situation Filters</div>
+            <div class="filter-group">
+              <label class="filter-label">Play Style</label>
+              <select class="filter-select" id="sug-style">
+                <option value="">All styles</option>
+                <option value="3pt">3-Point Focus</option>
+                <option value="layup">Paint / Layup</option>
+                <option value="midrange">Mid-Range</option>
+                <option value="putback">Offensive Rebound</option>
+                <option value="ft">Free Throw Draws</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Minimum Confidence: <strong id="conf-val">30%</strong></label>
+              <input type="range" id="sug-confidence" min="10" max="90" value="30" step="5" oninput="document.getElementById('conf-val').textContent=this.value+'%'">
+              <div class="range-labels"><span>10%</span><span>90%</span></div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Minimum Lift: <strong id="lift-val">1.0×</strong></label>
+              <input type="range" id="sug-lift" min="10" max="30" value="10" step="1" oninput="document.getElementById('lift-val').textContent=(this.value/10).toFixed(1)+'×'">
+              <div class="range-labels"><span>1.0×</span><span>3.0×</span></div>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Sequence Length</label>
+              <select class="filter-select" id="sug-length">
+                <option value="0">Any length</option>
+                <option value="2">2 events</option>
+                <option value="3">3 events</option>
+                <option value="4">4 events</option>
+                <option value="5">5 events</option>
+              </select>
+            </div>
+            <button class="run-btn" onclick="runSuggester()">SUGGEST PLAYS</button>
+          </div>
+
+          <div class="suggestions-area" id="suggestions-area">
+            <div class="empty-state">
+              <div class="empty-icon">🏀</div>
+              <div class="empty-title">No Suggestions Yet</div>
+              <div class="empty-sub">Load data first, then set your situation filters and click "Suggest Plays".</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ BENCHMARK PANEL ══ -->
+      <div class="panel" id="panel-benchmark">
+        <div class="bench-grid">
+          <div class="stat-card" style="--accent: var(--orange)">
+            <div class="stat-label">Fastest Run</div>
+            <div class="stat-value" id="bench-fastest">—</div>
+            <div class="stat-sub">seconds</div>
+          </div>
+          <div class="stat-card" style="--accent: var(--green)">
+            <div class="stat-label">Avg Runtime</div>
+            <div class="stat-value" id="bench-avg">—</div>
+            <div class="stat-sub">across thresholds</div>
+          </div>
+          <div class="stat-card" style="--accent: var(--blue)">
+            <div class="stat-label">Max Rules Found</div>
+            <div class="stat-value" id="bench-max-rules">—</div>
+            <div class="stat-sub">at lowest support</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">SUPPORT THRESHOLD SWEEP</span>
+            <span class="badge badge-green">Apriori performance</span>
+          </div>
+          <div class="card-body">
+            <div id="bench-rows"></div>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header"><span class="card-title">RULES vs SUPPORT</span></div>
+            <div class="card-body" style="padding:16px;">
+              <div style="position:relative;height:220px;"><canvas id="benchRulesChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">RUNTIME vs SUPPORT</span></div>
+            <div class="card-body" style="padding:16px;">
+              <div style="position:relative;height:220px;"><canvas id="benchTimeChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ LOAD DATA PANEL ══ -->
+      <div class="panel" id="panel-load">
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDrop(event)">
+          <div class="upload-title">DROP CSV OR CLICK TO UPLOAD</div>
+          <div class="upload-sub">nba_api PlayByPlayV2 schema · GAME_ID, EVENTMSGTYPE, EVENTMSGACTIONTYPE, EVENTNUM, HOMEDESCRIPTION, VISITORDESCRIPTION</div>
+          <input type="file" id="file-input" accept=".csv" style="display:none" onchange="loadFile(this.files[0])">
+        </div>
+
+        <div style="margin-bottom:16px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--muted);">OR USE DEMO DATA</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;">
+          <div class="suggestion-card" style="cursor:pointer" onclick="loadDemo('bos')">
+            <div class="sug-rank">DEMO DATASET</div>
+            <div class="sug-title">Boston Celtics</div>
+            <div style="font-size:12px;color:var(--muted);">2023-24 · 25 games · Pick-and-roll heavy offense</div>
+          </div>
+          <div class="suggestion-card" style="cursor:pointer;--accent-color:var(--blue)" onclick="loadDemo('gsw')">
+            <div class="sug-rank">DEMO DATASET</div>
+            <div class="sug-title">Golden State Warriors</div>
+            <div style="font-size:12px;color:var(--muted);">2022-23 · 25 games · Movement &amp; off-ball cutting</div>
+          </div>
+          <div class="suggestion-card" style="cursor:pointer;--accent-color:var(--green)" onclick="loadDemo('den')">
+            <div class="sug-rank">DEMO DATASET</div>
+            <div class="sug-title">Denver Nuggets</div>
+            <div style="font-size:12px;color:var(--muted);">2022-23 · 25 games · Post-entry &amp; 3-ball spacing</div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;margin-bottom:12px;color:var(--muted);">ALGORITHM SETTINGS</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+            <div class="filter-group">
+              <label class="filter-label">Min Support: <strong id="algo-support-val">5%</strong></label>
+              <input type="range" id="algo-support" min="1" max="20" value="5" step="1"
+                oninput="document.getElementById('algo-support-val').textContent=this.value+'%'">
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Min Confidence: <strong id="algo-conf-val">30%</strong></label>
+              <input type="range" id="algo-confidence" min="10" max="80" value="30" step="5"
+                oninput="document.getElementById('algo-conf-val').textContent=this.value+'%'">
+            </div>
+          </div>
+          <button class="run-btn" style="margin-top:8px;" onclick="rerunApriori()">RE-RUN APRIORI</button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let APP = {
+  games: 0,
+  allSeqs: [],
+  scoringSeqs: [],
+  rules: [],
+  benchData: [],
+  teamLabel: 'Demo — 2023-24',
+};
+
+// ════════════════════════════════════════════════════════════
+// EVENT TAXONOMY (mirrors Python backend)
+// ════════════════════════════════════════════════════════════
+const EVENT_MAP = {
+  '1,1':'FGM_JUMP','1,2':'FGM_JUMP','1,3':'FGM_JUMP',
+  '1,5':'FGM_LAYUP','1,6':'FGM_LAYUP','1,7':'FGM_DUNK',
+  '1,8':'FGM_DUNK','1,41':'FGM_DRIVE','1,43':'FGM_ALLEY',
+  '1,47':'FGM_HOOK','1,52':'FGM_PUTBACK','1,58':'FGM_TURNAROUND',
+  '1,72':'FGM_PULLUP','1,73':'FGM_STEPBACK','1,75':'FGM_FLOATER',
+  '1,79':'FGM_FADEAWAY','1,98':'FGM_3PT','1,99':'FGM_3PT','1,100':'FGM_3PT',
+  '1,101':'FGM_3PT','1,102':'FGM_3PT','1,108':'FGM_PULLUP',
+  '2,1':'FGA_JUMP','2,2':'FGA_JUMP','2,5':'FGA_LAYUP','2,7':'FGA_DUNK',
+  '2,41':'FGA_DRIVE','2,72':'FGA_PULLUP','2,79':'FGA_FADEAWAY',
+  '2,98':'FGA_3PT','2,99':'FGA_3PT','2,100':'FGA_3PT',
+  '3,10':'FT_MADE','3,11':'FT_MADE','3,12':'FT_MADE',
+  '3,13':'FT_MISSED','3,14':'FT_MISSED','3,15':'FT_MISSED',
+  '4,0':'REB_TEAM','4,1':'REB_OFF','4,2':'REB_DEF',
+  '5,1':'TOV_BALL','5,2':'TOV_TRAVEL','5,11':'TOV_STEAL',
+  '5,17':'TOV_SHOT_CLOCK','5,37':'TOV_OUT_BOUNDS','5,40':'TOV_LANE',
+  '6,1':'FOUL_PERSONAL','6,2':'FOUL_SHOOTING','6,3':'FOUL_CHARGE',
+  '7,1':'VIO_LANE','7,2':'VIO_GOALTEND',
+};
+const SCORING = new Set(['FGM_JUMP','FGM_LAYUP','FGM_DUNK','FGM_DRIVE','FGM_ALLEY',
+  'FGM_PULLUP','FGM_STEPBACK','FGM_FLOATER','FGM_FADEAWAY','FGM_TURNAROUND',
+  'FGM_HOOK','FGM_PUTBACK','FGM_3PT','FT_MADE']);
+const TURNOVER = new Set(['TOV_STEAL','TOV_BALL','TOV_TRAVEL','TOV_SHOT_CLOCK','TOV_OUT_BOUNDS','TOV_LANE']);
+const TERMINAL = new Set([...SCORING, ...TURNOVER]);
+const NOISE = new Set(['REB_DEF','REB_TEAM','FOUL_PERSONAL','FOUL_SHOOTING','FOUL_CHARGE','FT_MISSED','VIO_LANE','VIO_GOALTEND']);
+
+const ACTION_LABELS = {
+  'FGM_JUMP':'Jump Shot ✓','FGM_LAYUP':'Layup ✓','FGM_DUNK':'Dunk ✓',
+  'FGM_DRIVE':'Drive Layup ✓','FGM_ALLEY':'Alley-Oop ✓','FGM_PULLUP':'Pull-Up ✓',
+  'FGM_STEPBACK':'Step-Back ✓','FGM_FLOATER':'Floater ✓','FGM_FADEAWAY':'Fadeaway ✓',
+  'FGM_TURNAROUND':'Turnaround ✓','FGM_HOOK':'Hook Shot ✓','FGM_PUTBACK':'Putback ✓',
+  'FGM_3PT':'3-Pointer ✓','FT_MADE':'Free Throw ✓',
+  'FGA_JUMP':'Jump Shot ✗','FGA_LAYUP':'Layup ✗','FGA_DUNK':'Dunk ✗',
+  'FGA_DRIVE':'Drive ✗','FGA_3PT':'3-Pointer ✗','FGA_PULLUP':'Pull-Up ✗',
+  'FGA_FLOATER':'Floater ✗','FGA_FADEAWAY':'Fadeaway ✗',
+  'REB_OFF':'Off. Rebound','TOV_STEAL':'Stolen','TOV_BALL':'Turnover',
+  'TOV_TRAVEL':'Travel','TOV_SHOT_CLOCK':'Shot Clock','TOV_OUT_BOUNDS':'Out of Bounds',
+};
+
+function actionLabel(code) {
+  return ACTION_LABELS[code] || code.replace(/_/g,' ');
+}
+
+// ════════════════════════════════════════════════════════════
+// SEQUENCE EXTRACTION
+// ════════════════════════════════════════════════════════════
+function normalizeEvent(etype, atype) {
+  const key = `${etype},${atype}`;
+  if (EVENT_MAP[key]) return EVENT_MAP[key];
+  const fallbacks = {1:'FGM_OTHER',2:'FGA_OTHER',3:'FT_OTHER',4:'REBOUND',5:'TURNOVER',6:'FOUL'};
+  return fallbacks[etype] || `EVT_${etype}`;
+}
+
+function extractSequences(rows, minLen=2, maxLen=5) {
+  const byGame = {};
+  for (const row of rows) {
+    const gid = row.GAME_ID || row.game_id;
+    if (!byGame[gid]) byGame[gid] = [];
+    byGame[gid].push(row);
+  }
+  const allSeqs = [], scoringSeqs = [];
+  let gameCount = 0;
+
+  for (const gid in byGame) {
+    gameCount++;
+    const gdf = byGame[gid].slice().sort((a,b) => (+a.EVENTNUM||+a.eventnum||0) - (+b.EVENTNUM||+b.eventnum||0));
+    let current = [];
+
+    for (const row of gdf) {
+      const etype = +(row.EVENTMSGTYPE||row.eventmsgtype||0);
+      const atype = +(row.EVENTMSGACTIONTYPE||row.eventmsgactiontype||0);
+      const action = normalizeEvent(etype, atype);
+      if ([8,9,12,13].includes(etype)) {
+        if (current.length >= minLen) { const s=current.slice(0,maxLen); allSeqs.push(s); if(SCORING.has(s[s.length-1])) scoringSeqs.push(s); }
+        current = []; continue;
+      }
+      if (NOISE.has(action) && current.length) continue;
+      current.push(action);
+      if (TERMINAL.has(action)) {
+        const s = current.slice(0, maxLen);
+        if (s.length >= minLen) { allSeqs.push(s); if(SCORING.has(s[s.length-1])) scoringSeqs.push(s); }
+        current = [];
+      }
+    }
+    if (current.length >= minLen) allSeqs.push(current.slice(0,maxLen));
+  }
+  return { allSeqs, scoringSeqs, gameCount };
+}
+
+// ════════════════════════════════════════════════════════════
+// APRIORI (JavaScript implementation)
+// ════════════════════════════════════════════════════════════
+function getItemsets(sequences) {
+  const items = new Set();
+  for (const s of sequences) for (const e of s) items.add(e);
+  return [...items];
+}
+
+function countSupport(sequences, itemset) {
+  const set = new Set(itemset);
+  return sequences.filter(s => [...set].every(i => s.includes(i))).length;
+}
+
+function generateCandidates(freqItemsets, k) {
+  const candidates = [];
+  const sets = freqItemsets.map(i => i.items);
+  for (let i = 0; i < sets.length; i++) {
+    for (let j = i+1; j < sets.length; j++) {
+      const union = [...new Set([...sets[i], ...sets[j]])];
+      if (union.length === k) {
+        const exists = candidates.some(c => c.length === union.length && c.every(x => union.includes(x)));
+        if (!exists) candidates.push(union);
+      }
+    }
+  }
+  return candidates;
+}
+
+function runApriori(sequences, minSupport=0.05, minConfidence=0.30, minLift=1.0, maxLen=5) {
+  const t0 = performance.now();
+  const n = sequences.length;
+  const minCount = Math.floor(minSupport * n);
+
+  // Find frequent 1-itemsets
+  let freqItemsets = [];
+  const items = getItemsets(sequences);
+  for (const item of items) {
+    const count = countSupport(sequences, [item]);
+    if (count >= minCount) freqItemsets.push({ items:[item], count, support: count/n });
+  }
+
+  // Grow itemsets
+  let currentLevel = freqItemsets;
+  for (let k = 2; k <= maxLen && currentLevel.length > 0; k++) {
+    const candidates = generateCandidates(currentLevel, k);
+    const nextLevel = [];
+    for (const cand of candidates) {
+      const count = countSupport(sequences, cand);
+      if (count >= minCount) nextLevel.push({ items: cand, count, support: count/n });
+    }
+    freqItemsets = [...freqItemsets, ...nextLevel];
+    currentLevel = nextLevel;
+  }
+
+  // Generate association rules
+  const rules = [];
+  for (const itemset of freqItemsets) {
+    if (itemset.items.length < 2) continue;
+    // For each non-empty proper subset as antecedent
+    const items = itemset.items;
+    for (let mask = 1; mask < (1 << items.length) - 1; mask++) {
+      const ant = items.filter((_,i) => mask & (1<<i));
+      const con = items.filter((_,i) => !(mask & (1<<i)));
+      if (!con.some(c => SCORING.has(c))) continue;
+      const antSupport = countSupport(sequences, ant) / n;
+      if (antSupport === 0) continue;
+      const confidence = itemset.support / antSupport;
+      const conSupport = countSupport(sequences, con) / n;
+      const lift = conSupport > 0 ? confidence / conSupport : 0;
+      if (confidence >= minConfidence && lift >= minLift) {
+        rules.push({ antecedents: ant, consequents: con, support: itemset.support, confidence, lift, antSupport });
+      }
+    }
+  }
+
+  rules.sort((a,b) => b.lift - a.lift);
+  const elapsed = (performance.now() - t0) / 1000;
+  return { rules, freqItemsets, elapsed };
+}
+
+// ════════════════════════════════════════════════════════════
+// BENCHMARK SWEEP
+// ════════════════════════════════════════════════════════════
+function sweepThresholds(sequences) {
+  const thresholds = [0.02, 0.03, 0.05, 0.07, 0.10, 0.15];
+  return thresholds.map(thresh => {
+    const t0 = performance.now();
+    const { rules, freqItemsets } = runApriori(sequences, thresh, 0.20, 1.0);
+    const elapsed = (performance.now() - t0) / 1000;
+    return { thresh, freqItemsets: freqItemsets.length, rules: rules.length, elapsed };
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// CHART INSTANCES
+// ════════════════════════════════════════════════════════════
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+const CHART_COLORS = ['#ff6b2b','#4a9eff','#2ecc8a','#f5c542','#e040fb','#ff4d6a','#00bcd4','#8bc34a','#ff9800'];
+
+function buildScoreChart(scoringSeqs) {
+  destroyChart('scoreChart');
+  const counts = {};
+  for (const s of scoringSeqs) { const t = s[s.length-1]; counts[t]=(counts[t]||0)+1; }
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const labels = sorted.map(([k])=>actionLabel(k));
+  const data   = sorted.map(([,v])=>v);
+  charts['scoreChart'] = new Chart(document.getElementById('scoreChart'), {
+    type: 'doughnut',
+    data: { labels, datasets:[{ data, backgroundColor: CHART_COLORS, borderWidth:0, hoverOffset:6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      cutout: '65%',
+    }
+  });
+  const total = data.reduce((a,b)=>a+b,0);
+  document.getElementById('scoring-count-badge').textContent = total + ' scores';
+
+  // Custom legend
+  const legend = document.getElementById('scoreChart').parentElement;
+  let leg = legend.querySelector('.custom-legend');
+  if (!leg) { leg = document.createElement('div'); leg.className = 'custom-legend'; leg.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:11px;'; legend.parentElement.appendChild(leg); }
+  leg.innerHTML = sorted.map(([k,v],i) => `<span style="display:flex;align-items:center;gap:4px;color:#7a7986"><span style="width:8px;height:8px;border-radius:2px;background:${CHART_COLORS[i]};flex-shrink:0"></span>${actionLabel(k)} <span style="color:var(--text)">${Math.round(v/total*100)}%</span></span>`).join('');
+}
+
+function buildActionChart(allSeqs) {
+  destroyChart('actionChart');
+  const counts = {};
+  for (const s of allSeqs) for (const e of s) counts[e]=(counts[e]||0)+1;
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const wrapLabel = l => l.length > 14 ? l.slice(0,14)+'…' : l;
+  charts['actionChart'] = new Chart(document.getElementById('actionChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([k])=>wrapLabel(actionLabel(k))),
+      datasets:[{ data: sorted.map(([,v])=>v), backgroundColor:'#4a9eff', borderRadius:4, borderWidth:0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis:'y',
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#7a7986',font:{size:11}} },
+        y: { grid:{display:false}, ticks:{color:'#7a7986',font:{size:11}} }
+      }
+    }
+  });
+}
+
+function buildBenchCharts(benchData) {
+  destroyChart('benchRulesChart');
+  destroyChart('benchTimeChart');
+  const labels = benchData.map(d => (d.thresh*100).toFixed(0)+'%');
+  charts['benchRulesChart'] = new Chart(document.getElementById('benchRulesChart'), {
+    type:'bar', data:{labels, datasets:[{data:benchData.map(d=>d.rules),backgroundColor:'#ff6b2b',borderRadius:4,borderWidth:0,label:'Rules'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a7986',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7a7986',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+  charts['benchTimeChart'] = new Chart(document.getElementById('benchTimeChart'), {
+    type:'line', data:{labels, datasets:[{data:benchData.map(d=>+d.elapsed.toFixed(4)),borderColor:'#2ecc8a',backgroundColor:'rgba(46,204,138,0.1)',fill:true,tension:0.4,pointRadius:4,label:'Seconds'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a7986',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7a7986',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ════════════════════════════════════════════════════════════
+function renderStats() {
+  const {games, allSeqs, scoringSeqs, rules} = APP;
+  document.getElementById('stat-games').textContent = games;
+  document.getElementById('stat-seqs').textContent = allSeqs.length.toLocaleString();
+  document.getElementById('stat-score-rate').textContent = allSeqs.length ? Math.round(scoringSeqs.length/allSeqs.length*100)+'%' : '0%';
+  document.getElementById('stat-rules').textContent = rules.length;
+  document.getElementById('team-badge').textContent = APP.teamLabel;
+  document.getElementById('games-badge').textContent = games + ' Games';
+  document.getElementById('rules-badge').textContent = rules.length + ' Rules';
+}
+
+function makeSeqPill(items, highlight=[]) {
+  return items.map((item,i) => {
+    const isScore = SCORING.has(item);
+    const tag = `<span class="seq-tag${isScore?' score':''}">${actionLabel(item)}</span>`;
+    return (i < items.length-1) ? tag+`<span class="seq-arrow">›</span>` : tag;
+  }).join('');
+}
+
+function renderTopSeqs() {
+  const counts = {};
+  const scoringSet = new Set(APP.scoringSeqs.map(s => s.join('|')));
+  for (const s of APP.allSeqs) { const k=s.join('|'); counts[k]=(counts[k]||0)+1; }
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const total = APP.allSeqs.length;
+  const tbody = document.getElementById('top-seq-tbody');
+  tbody.innerHTML = sorted.map(([k,cnt],i) => {
+    const seq = k.split('|');
+    const isScore = scoringSet.has(k);
+    return `<tr class="fade-up" style="animation-delay:${i*30}ms">
+      <td style="color:var(--muted);font-family:'DM Mono',monospace">${i+1}</td>
+      <td><div class="seq-pill">${makeSeqPill(seq)}</div></td>
+      <td style="font-family:'DM Mono',monospace;color:var(--orange)">${cnt}</td>
+      <td><div class="metric-bar-wrap">
+        <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${Math.round(cnt/total*100*5)}%;background:var(--blue)"></div></div>
+        <span class="metric-val">${(cnt/total*100).toFixed(1)}%</span>
+      </div></td>
+      <td>${isScore ? '<span class="badge badge-green">YES</span>' : '<span class="badge" style="background:var(--bg4);color:var(--muted);border:1px solid var(--border)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRules() {
+  const sort = document.getElementById('sort-rules').value;
+  const filterCon = document.getElementById('filter-consequent').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+
+  let rules = [...APP.rules];
+  if (filterCon) rules = rules.filter(r => r.consequents.some(c => c === filterCon));
+  if (search) rules = rules.filter(r => r.antecedents.some(a => a.toLowerCase().includes(search) || actionLabel(a).toLowerCase().includes(search)));
+  rules.sort((a,b) => b[sort] - a[sort]);
+
+  document.getElementById('rules-count-label').textContent = rules.length + ' rules';
+
+  // Populate consequent filter
+  const conFilter = document.getElementById('filter-consequent');
+  const currentVal = conFilter.value;
+  const allCons = [...new Set(APP.rules.flatMap(r => r.consequents))].filter(c => SCORING.has(c)).sort();
+  if (conFilter.options.length <= 1) {
+    allCons.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=actionLabel(c); conFilter.appendChild(o); });
+  }
+
+  const tbody = document.getElementById('rules-tbody');
+  tbody.innerHTML = rules.slice(0,50).map((r,i) => {
+    const liftColor = r.lift > 2 ? 'var(--green)' : r.lift > 1.5 ? 'var(--orange)' : 'var(--text)';
+    const confColor = r.confidence > 0.6 ? 'var(--green)' : r.confidence > 0.4 ? 'var(--orange)' : 'var(--muted)';
+    return `<tr class="fade-up" style="animation-delay:${Math.min(i,20)*20}ms">
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px">${i+1}</td>
+      <td><div class="seq-pill">${r.antecedents.map(a=>`<span class="seq-tag">${actionLabel(a)}</span>`).join('<span class="seq-arrow">+</span>')}</div></td>
+      <td><div class="seq-pill">${r.consequents.map(c=>`<span class="seq-tag score">${actionLabel(c)}</span>`).join('')}</div></td>
+      <td><div class="metric-bar-wrap">
+        <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${Math.round(r.support*100*8)}%;background:var(--blue)"></div></div>
+        <span class="metric-val">${(r.support*100).toFixed(1)}%</span>
+      </div></td>
+      <td style="color:${confColor};font-family:'DM Mono',monospace;font-size:13px">${(r.confidence*100).toFixed(0)}%</td>
+      <td style="color:${liftColor};font-family:'DM Mono',monospace;font-size:13px;font-weight:500">${r.lift.toFixed(2)}×</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--muted)">No rules match current filters</td></tr>`;
+}
+
+function renderBenchmark() {
+  const data = APP.benchData;
+  if (!data.length) return;
+
+  const times = data.map(d=>d.elapsed);
+  document.getElementById('bench-fastest').textContent = Math.min(...times).toFixed(4);
+  document.getElementById('bench-avg').textContent = (times.reduce((a,b)=>a+b,0)/times.length).toFixed(3);
+  document.getElementById('bench-max-rules').textContent = Math.max(...data.map(d=>d.rules));
+
+  const maxTime = Math.max(...times);
+  const maxRules = Math.max(...data.map(d=>d.rules)) || 1;
+
+  document.getElementById('bench-rows').innerHTML = data.map(d => `
+    <div class="bench-row">
+      <span class="bench-thresh">${(d.thresh*100).toFixed(0)}%</span>
+      <div class="bench-bar-group">
+        <div class="bench-mini-row">
+          <span class="bench-mini-label">Rules</span>
+          <div class="bench-mini-bar"><div class="bench-mini-fill" style="width:${Math.round(d.rules/maxRules*100)}%;background:var(--orange)"></div></div>
+          <span class="bench-mini-val" style="color:var(--orange)">${d.rules}</span>
+        </div>
+        <div class="bench-mini-row">
+          <span class="bench-mini-label">Time</span>
+          <div class="bench-mini-bar"><div class="bench-mini-fill" style="width:${Math.round(d.elapsed/maxTime*100)}%;background:var(--blue)"></div></div>
+          <span class="bench-mini-val" style="color:var(--blue)">${d.elapsed.toFixed(4)}s</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-green">${d.freqItemsets} itemsets</span>
+      </div>
+    </div>
+  `).join('');
+
+  buildBenchCharts(data);
+}
+
+// ════════════════════════════════════════════════════════════
+// PLAY SUGGESTER
+// ════════════════════════════════════════════════════════════
+const STYLE_FILTERS = {
+  '3pt':     r => r.consequents.some(c => c === 'FGM_3PT'),
+  'layup':   r => r.consequents.some(c => ['FGM_LAYUP','FGM_DRIVE','FGM_ALLEY','FGM_DUNK'].includes(c)),
+  'midrange':r => r.consequents.some(c => ['FGM_JUMP','FGM_PULLUP','FGM_FADEAWAY','FGM_STEPBACK','FGM_FLOATER','FGM_TURNAROUND'].includes(c)),
+  'putback': r => r.antecedents.some(a => a === 'REB_OFF'),
+  'ft':      r => r.consequents.some(c => c === 'FT_MADE'),
+};
+
+const PLAY_EXPLAINS = {
+  'FGM_3PT': 'This sequence ends in a three-pointer. Optimal when the defense collapses on a drive or PNR, creating an open kick-out opportunity on the perimeter.',
+  'FGM_LAYUP': 'A layup finish at the rim — typically the result of a successful drive, alley-oop setup, or off-ball cut that beats the defender before help can arrive.',
+  'FGM_DRIVE': 'A driving layup in the paint. Most effective against help-deficient defenses or when isolating a slower defender on the perimeter.',
+  'FGM_ALLEY': 'An alley-oop dunk or layup — requires a PnR roll, backdoor cut, or lob set play. Extremely high-efficiency when the roll man beats his defender.',
+  'FGM_DUNK': 'A dunk finish — usually off a fast break, offensive rebound, or cutting action where the ball carrier beats the last line of defense.',
+  'FGM_JUMP': 'A mid-range jump shot. Often preceded by a pin-down screen, isolation, or PnR pop. Effective for a shooter with a good contested mid-range percentage.',
+  'FGM_PULLUP': 'A pull-up jumper off the dribble — the ball handler creates their own shot off PnR or isolation. Requires a high ball handler ISO or PnR situation.',
+  'FGM_PUTBACK': 'An offensive putback from a missed shot — generated through offensive rebounding positioning, most commonly by a big who crashes the glass.',
+  'FT_MADE': 'Draws a foul and makes free throws — typically produced by aggressive drives to the basket, post-up contact, or attacking hard-fouling defenders.',
+  'FGM_STEPBACK': 'A step-back three or mid-range — a creator shot that requires space but is very difficult to contest once the shooter hits their rhythm.',
+  'FGM_FLOATER': 'A floater/teardrop in the mid-paint — effective against shot-blockers and rim protectors when a full drive to the basket is sealed off.',
+  'FGM_FADEAWAY': 'A fadeaway jumper — typically a post move or isolation shot for a high-usage wing or big. Low frequency but difficult to contest.',
+  'FGM_HOOK': 'A hook shot in the post — the result of a successful post-up, most effective for bigs with established post footwork.',
+};
+
+function runSuggester() {
+  const style = document.getElementById('sug-style').value;
+  const minConf = document.getElementById('sug-confidence').value / 100;
+  const minLift = document.getElementById('sug-lift').value / 10;
+  const seqLen  = +document.getElementById('sug-length').value;
+
+  let rules = [...APP.rules];
+  if (style && STYLE_FILTERS[style]) rules = rules.filter(STYLE_FILTERS[style]);
+  rules = rules.filter(r => r.confidence >= minConf && r.lift >= minLift);
+  if (seqLen > 0) rules = rules.filter(r => (r.antecedents.length + r.consequents.length) === seqLen);
+  rules.sort((a,b) => (b.lift * b.confidence) - (a.lift * a.confidence));
+  rules = rules.slice(0, 12);
+
+  const area = document.getElementById('suggestions-area');
+  if (!rules.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">🔎</div><div class="empty-title">No Plays Found</div><div class="empty-sub">Try loosening your filters — lower the confidence or lift threshold, or change the play style.</div></div>`;
+    return;
+  }
+
+  const tier = (r) => r.lift > 2.5 && r.confidence > 0.6 ? 'ELITE' : r.lift > 1.8 ? 'HIGH YIELD' : r.confidence > 0.5 ? 'RELIABLE' : 'MODERATE';
+  const tierColor = (t) => t==='ELITE'?'var(--green)':t==='HIGH YIELD'?'var(--orange)':t==='RELIABLE'?'var(--blue)':'var(--muted)';
+
+  area.innerHTML = rules.map((r, i) => {
+    const fullSeq = [...r.antecedents, ...r.consequents];
+    const t = tier(r);
+    const tc = tierColor(t);
+    const con = r.consequents[0];
+    const explain = PLAY_EXPLAINS[con] || 'This pattern consistently appears in scoring possessions for this team.';
+    const title = r.antecedents.map(a => actionLabel(a).replace(/ [✓✗]/g,'')).join(' → ') + ' → ' + actionLabel(con).replace(/ [✓✗]/g,'');
+
+    return `<div class="suggestion-card fade-up" style="--accent-color:${tc};animation-delay:${i*40}ms" onclick="this.classList.toggle('open')">
+      <div class="sug-rank">#${i+1} &nbsp;·&nbsp; <span style="color:${tc}">${t}</span></div>
+      <div class="sug-title">${title}</div>
+      <div class="sug-seq">${fullSeq.map((s,si) => `<div class="sug-step"><div class="sug-dot" style="background:${SCORING.has(s)?'var(--green)':'var(--orange)'}"></div><span class="sug-step-label">${actionLabel(s).replace(/ [✓✗]/g,'')}</span></div>${si<fullSeq.length-1?'<span class="sug-arrow-icon">›</span>':''}`).join('')}</div>
+      <div class="sug-meta">
+        <div class="sug-metric">Confidence <strong class="${r.confidence>0.55?'green':'orange'}">${(r.confidence*100).toFixed(0)}%</strong></div>
+        <div class="sug-metric">Lift <strong class="${r.lift>2?'green':'orange'}">${r.lift.toFixed(2)}×</strong></div>
+        <div class="sug-metric">Support <strong class="blue">${(r.support*100).toFixed(1)}%</strong></div>
+      </div>
+      <div class="sug-explain">📋 <strong>Coaching note:</strong> ${explain}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════════════════════════════════
+function processData(rows, teamLabel) {
+  APP.teamLabel = teamLabel;
+  const { allSeqs, scoringSeqs, gameCount } = extractSequences(rows);
+  APP.allSeqs = allSeqs;
+  APP.scoringSeqs = scoringSeqs;
+  APP.games = gameCount;
+
+  const minSup = document.getElementById('algo-support').value / 100;
+  const minConf = document.getElementById('algo-confidence').value / 100;
+  const { rules } = runApriori(allSeqs, minSup, minConf, 1.0, 5);
+  APP.rules = rules;
+  APP.benchData = sweepThresholds(allSeqs);
+
+  renderStats();
+  buildScoreChart(scoringSeqs);
+  buildActionChart(allSeqs);
+  renderTopSeqs();
+  renderRules();
+  renderBenchmark();
+  navTo('overview', document.querySelector('.nav-item'));
+}
+
+function rerunApriori() {
+  if (!APP.allSeqs.length) { alert('Load data first.'); return; }
+  const minSup = document.getElementById('algo-support').value / 100;
+  const minConf = document.getElementById('algo-confidence').value / 100;
+  const { rules } = runApriori(APP.allSeqs, minSup, minConf, 1.0, 5);
+  APP.rules = rules;
+  APP.benchData = sweepThresholds(APP.allSeqs);
+  renderStats();
+  renderRules();
+  renderBenchmark();
+}
+
+// ── CSV upload ──
+function loadFile(file) {
+  if (!file) return;
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: result => processData(result.data, file.name.replace('.csv','')),
+    error: err => alert('CSV parse error: ' + err.message),
+  });
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) loadFile(file);
+}
+
+// ── Demo data generators ──
+const DEMO_CONFIGS = {
+  bos: { label:'BOS — 2023-24', n:25, templates:['PNR_ROLL','PNR_KICK3','ISO_DRIVE','CORNER3','BACKDOOR','TRANSITION','OREB_PUT','MISS3','MISS_MID','TOV'] },
+  gsw: { label:'GSW — 2022-23', n:25, templates:['MOVEMENT3','HAND_OFF3','DRAY_LACE','TRANSITION','CORNER3','OFF_BALL_CUT','MISS3','MISS_MID','TOV','ISO'] },
+  den: { label:'DEN — 2022-23', n:25, templates:['POST_KICK3','POST_HOOK','PNR_ROLL','ISO_DRIVE','CORNER3','TRANSITION','PUTBACK','MISS3','MISS_POST','TOV'] },
+};
+
+const TEMPLATE_SEQS = {
+  PNR_ROLL:     [['FGA_JUMP','REB_OFF','FGM_LAYUP'],['FGA_3PT','REB_OFF','FGM_LAYUP'],['FGM_LAYUP'],['FGA_JUMP','FGM_LAYUP']],
+  PNR_KICK3:    [['FGA_JUMP','FGM_3PT'],['FGA_JUMP','FGA_JUMP','FGM_3PT'],['FGM_3PT'],['FGA_3PT','REB_OFF','FGM_3PT']],
+  ISO_DRIVE:    [['FGM_DRIVE'],['FGA_JUMP','FGM_DRIVE'],['FGM_JUMP'],['FGA_JUMP','FGM_JUMP']],
+  CORNER3:      [['FGA_JUMP','FGM_3PT'],['FGM_3PT'],['FGA_3PT','REB_DEF','FGA_JUMP','FGM_3PT']],
+  BACKDOOR:     [['FGA_LAYUP','FGM_LAYUP'],['FGM_ALLEY'],['FGA_JUMP','FGM_LAYUP']],
+  TRANSITION:   [['REB_DEF','FGM_LAYUP'],['TOV_STEAL','FGM_DUNK'],['REB_DEF','FGA_JUMP','FGM_3PT']],
+  OREB_PUT:     [['FGA_JUMP','REB_OFF','FGM_LAYUP'],['FGA_3PT','REB_OFF','FGM_LAYUP'],['FGA_LAYUP','REB_OFF','FGM_LAYUP']],
+  MISS3:        [['FGA_3PT'],['FGA_JUMP','FGA_3PT'],['FGA_3PT','TOV_BALL']],
+  MISS_MID:     [['FGA_JUMP'],['FGA_JUMP','FGA_JUMP'],['FGA_JUMP','TOV_BALL']],
+  TOV:          [['TOV_STEAL'],['TOV_BALL'],['FGA_JUMP','TOV_SHOT_CLOCK']],
+  MOVEMENT3:    [['FGA_JUMP','FGM_3PT'],['FGA_JUMP','FGA_JUMP','FGM_3PT'],['FGM_3PT']],
+  HAND_OFF3:    [['FGA_3PT','REB_OFF','FGM_3PT'],['FGM_PULLUP'],['FGA_JUMP','FGM_3PT']],
+  DRAY_LACE:    [['FGM_ALLEY'],['FGA_JUMP','FGM_ALLEY'],['FGA_LAYUP','FGM_DUNK']],
+  OFF_BALL_CUT: [['FGA_LAYUP','FGM_LAYUP'],['FGM_ALLEY'],['FGA_JUMP','FGM_LAYUP']],
+  POST_KICK3:   [['FGA_JUMP','FGM_3PT'],['FGA_3PT','REB_OFF','FGM_3PT'],['FGM_3PT']],
+  POST_HOOK:    [['FGM_HOOK'],['FGA_JUMP','FGM_HOOK'],['FGM_LAYUP']],
+  PUTBACK:      [['FGA_JUMP','REB_OFF','FGM_LAYUP'],['FGA_JUMP','REB_OFF','FGM_PUTBACK']],
+  MISS_POST:    [['FGA_JUMP'],['FGA_LAYUP'],['FGA_JUMP','TOV_BALL']],
+  ISO:          [['FGM_JUMP'],['FGM_PULLUP'],['FGA_JUMP','FGM_STEPBACK']],
+};
+
+function loadDemo(key) {
+  const cfg = DEMO_CONFIGS[key];
+  const rows = [];
+  let eventNum = 0;
+  for (let g = 0; g < cfg.n; g++) {
+    const gid = `00230${key.toUpperCase()}${g+100}`;
+    let period = 1, pos = 0;
+    for (let p = 0; p < 90; p++) {
+      pos++;
+      if (pos > 22) { period=Math.min(period+1,4); pos=0; rows.push({GAME_ID:gid,EVENTNUM:eventNum++,PERIOD:period,EVENTMSGTYPE:12,EVENTMSGACTIONTYPE:0,HOMEDESCRIPTION:'',VISITORDESCRIPTION:''}); }
+      const tmpl = cfg.templates[Math.floor(Math.random()*cfg.templates.length)];
+      const variants = TEMPLATE_SEQS[tmpl] || [['FGA_JUMP']];
+      const seq = variants[Math.floor(Math.random()*variants.length)];
+      for (const action of seq) {
+        const [et,at] = Object.entries(EVENT_MAP).find(([k,v])=>v===action)?.[0]?.split(',').map(Number) || [2,1];
+        rows.push({GAME_ID:gid,EVENTNUM:eventNum++,PERIOD:period,EVENTMSGTYPE:et,EVENTMSGACTIONTYPE:at,HOMEDESCRIPTION:Math.random()>0.5?action:'',VISITORDESCRIPTION:Math.random()>0.5?action:''});
+      }
+    }
+  }
+  processData(rows, cfg.label);
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+const PANEL_TITLES = { overview:'OVERVIEW', patterns:'PATTERN RULES', suggester:'PLAY SUGGESTER', benchmark:'BENCHMARK', load:'LOAD DATA' };
+function navTo(id, el) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const panel = document.getElementById('panel-'+id);
+  if (panel) panel.classList.add('active');
+  document.getElementById('page-title').textContent = PANEL_TITLES[id] || id.toUpperCase();
+}
+
+// ════════════════════════════════════════════════════════════
+// BOOT — load Boston demo immediately
+// ════════════════════════════════════════════════════════════
+window.addEventListener('load', () => loadDemo('bos'));
+</script>
+</body>
+</html>
